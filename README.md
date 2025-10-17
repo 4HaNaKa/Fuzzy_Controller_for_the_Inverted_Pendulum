@@ -1,50 +1,13 @@
 # Fuzzy_Controller_for_the_Inverted_Pendulum
-Fuzzy-controlled inverted pendulum with real-time visualization. Simple physics + fuzzy controller, looped or finite disturbances, text-based config.
 
-Goal
-Build a fuzzy-logic controller that keeps an inverted pendulum upright on a cart, with real-time visualization and configurable disturbances. 
+This project implements a fuzzy controlled inverted pendulum with real time visualization. It uses simple physics and a fuzzy controller, supports looped or finite disturbances, and reads a text based configuration.
 
-What I implemented:
--Physics: a simple cart–pole model solved each step from a 2×2 linear system (acceleration of cart and angular acceleration of pole).
--Controller: classic fuzzy pipeline
--fuzzification of inputs (x, dx, theta, dtheta),
--rule base (short set driven mainly by theta and dtheta),
--defuzzification by weighted average (N/Z/P force labels).
--Negation = 1−μ, AND = min, OR = max, triangular memberships. Steps are separated in code, as academic requirements.
+Goal. The aim was to keep a pole balanced upright on a moving cart while showing the motion live. Disturbances can be configured so the controller is tested under different conditions.
 
-Initialization:
--It computes drawing scales from the canvas size and axes limits.
--It sets the initial state: x, dx, theta, dtheta.
--A Qt timer starts the main loop. frameskip controls how many physics steps happen per screen refresh.
+What I implemented. The physics is a compact cart–pole model solved each step from a 2×2 linear system that gives the cart acceleration and the pole angular acceleration. The controller follows a classic fuzzy pipeline: inputs x, dx, theta, dtheta are fuzzified with triangular memberships; a short rule base focused on theta and dtheta decides the action; the final force is obtained by a weighted average over three labels N, Z, P. Logical operators are standard min for AND, max for OR, and 1 minus membership for negation. Each stage is separated in the code for clarity.
 
-Main loop (per tick):
--Read the next disturbance value d.
--Compute the control force u with fuzzy logic.
--Total force on the cart: F = d + u.
--Solve the cart–pole equations for accelerations (ddx, ddtheta) using a 2×2 linear system.
--Integrate with a small time step dt (Euler):
--dx += ddx*dt, x += dx*dt, dtheta += ddtheta*dt, theta += dtheta*dt.
--Wrap theta to [-π, π] so angles do not blow up.
--If sandbox is off, stop when |x| is too large or |theta| is too large.
--Redraw the scene (ground, cart, rod, ball, simple ticks).
+It  computes drawing scales from the canvas size and axis limits, sets x, dx, theta, dtheta, and starts a Qt timer. The frameskip value controls how many physics updates happen for each screen refresh.
 
-Fuzzy controller (u):
-Inputs: x, dx, theta, dtheta.
-Fuzzification: for each input, compute memberships in three triangular sets: Negative (N), Zero (Z), Positive (P).
-  Example (idea only):
-    theta_N = tri(theta; start=-0.1, peak=-0.0, end=+0.0)
-    theta_Z = tri(theta; -0.1, 0.0, +0.1)
-    theta_P = tri(theta; +0.0, +0.0, +0.1)
-  Rules:
-    If theta is N and dtheta is N → Force is P (push right to catch it).
-    If theta is P and dtheta is P → Force is N (push left to catch it).
-    If theta is Z → Force is Z (do nothing).
-    Fuzzy AND = min, OR = max, Negation = 1 − μ.
+Main loop. Every tick the program reads the next disturbance, computes the control force from the fuzzy controller, sums both into a total force on the cart, solves the cart–pole equations for accelerations, and integrates the state with a small time step. The pole angle is wrapped to the range minus pi to pi to avoid numerical drift. If sandbox mode is disabled the simulation stops when the cart position or pole angle leaves safe bounds. After the update the scene is redrawn.
 
-Drawing:
--Convert meters/radians to pixels using precomputed scales.
--Draw ground, pole (line from cart to tip), cart (rectangle), ball (red circle at the tip), and simple numeric ticks.
-
-Timing and smoothness:
--timer.start(1) triggers frequent ticks.
--frameskip runs multiple physics steps per paint, making motion smoother without redrawing every micro-step.
+Rendering and timing. Physical units are converted to pixels using the precomputed scales, then the ground, cart, pole, ball tip, and simple numeric ticks are drawn. A fast Qt timer drives the animation, while frameskip performs several physics steps per paint to keep motion smooth without overloading the UI.
